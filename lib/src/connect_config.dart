@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
-import 'dart:io';
+import 'package:universal_io/io.dart';
 
 import 'package:crypto/crypto.dart';
 import 'package:edgedb/src/utils/crc_hqx.dart';

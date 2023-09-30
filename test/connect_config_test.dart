@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'package:universal_io/io.dart';
 
 import 'package:crypto/crypto.dart';
 import 'package:edgedb/src/connect_config.dart';
