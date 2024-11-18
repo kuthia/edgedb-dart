@@ -3,6 +3,7 @@ import 'package:universal_io/io.dart';
 import 'package:path/path.dart' as p;
 import 'package:html/parser.dart' as html_parser;
 import 'package:html/dom.dart' as html;
+import 'package:args/args.dart';
 
 const outDir = 'rstdocs';
 
@@ -14,6 +15,14 @@ class PageRef {
   const PageRef({required this.page, required this.type, required this.name});
 }
 
+const hrefToRefMapping = {
+  '/docs/quickstart': 'ref_quickstart',
+  '/docs/edgeql/parameters#parameter-types-and-json': 'ref_eql_params_types',
+  '/docs/reference/connection': 'ref_reference_connection',
+  '/docs/stdlib/cfg#client-connections': 'ref_std_cfg_client_connections',
+  '/docs/reference/edgeql/tx_start#parameters': 'ref_eql_statements_start_tx'
+};
+
 const pageRefs = [
   PageRef(page: "api", type: "function", name: "createClient"),
   PageRef(page: "api", type: "class", name: "Client"),
@@ -22,12 +31,19 @@ const pageRefs = [
   PageRef(page: "api", type: "class", name: "RetryOptions"),
   PageRef(page: "api", type: "class", name: "TransactionOptions"),
   PageRef(page: "datatypes", type: "class", name: "Range"),
+  PageRef(page: "datatypes", type: "class", name: "MultiRange"),
   PageRef(page: "datatypes", type: "class", name: "ConfigMemory"),
 ];
 
-void main() async {
+final argsParser = ArgParser()..addFlag('lintMode', negatable: false);
+
+void main(List<String> args) async {
+  final parsedArgs = argsParser.parse(args);
+  final lintMode = parsedArgs['lintMode'] as bool;
+
   final genPath = "doc/api";
 
+  print('Generating docs...');
   final genRes = await Process.run('dart', ['doc', '--output=$genPath']);
   print(genRes.stderr + genRes.stdout);
 
@@ -36,12 +52,18 @@ void main() async {
   await Directory(outDir).create();
 
   await Future.wait([
-    processIndexPage(genPath, outDir),
-    processClientPage(genPath, outDir),
-    processAPIPage(outDir, docs['api']!),
-    processDatatypesPage(outDir, docs['datatypes']!),
-    processCodegenPage(genPath, outDir),
+    processIndexPage(genPath, outDir, lintMode),
+    processClientPage(genPath, outDir, lintMode),
+    processAPIPage(outDir, docs['api']!, lintMode),
+    processDatatypesPage(outDir, docs['datatypes']!, lintMode),
+    processCodegenPage(genPath, outDir, lintMode),
   ]);
+
+  // ignore: prefer_interpolation_to_compose_strings
+  print('Done! ' +
+      (lintMode
+          ? 'Docs in $outDir match generated docs'
+          : 'Docs generated into $outDir'));
 }
 
 final fileRefMapping = <String, String>{};
@@ -114,7 +136,22 @@ Future<Map<String, List<RefData>>> generateFileMapping(String basePath) async {
   return docs;
 }
 
-Future<void> processIndexPage(String basePath, String outDir) async {
+Future<void> writeOrValidateFile(
+    String path, String content, bool lintMode) async {
+  final file = File(path);
+
+  if (lintMode) {
+    if (await file.readAsString() != content) {
+      throw Exception('Content of "$path" does not match generated docs, '
+          'Run "dart run tool/gen_docs.dart" to update docs');
+    }
+  } else {
+    await file.writeAsString(content);
+  }
+}
+
+Future<void> processIndexPage(
+    String basePath, String outDir, bool lintMode) async {
   final doc = await parseHtmlFile(p.join(basePath, "index.html"));
 
   final page =
@@ -125,9 +162,10 @@ Future<void> processIndexPage(String basePath, String outDir) async {
   final heading = pageParts[0];
   final content = pageParts[1];
 
-  final indexPage = '''$heading
+  final indexPage = '''.. edb:tag:: dart
+  .. _edgedb-dart-intro:
 
-.. _ref_client_dart:
+$heading
 
 .. toctree::
   :maxdepth: 3
@@ -140,10 +178,11 @@ Future<void> processIndexPage(String basePath, String outDir) async {
 
 $content''';
 
-  await File(p.join(outDir, 'index.rst')).writeAsString(indexPage);
+  await writeOrValidateFile(p.join(outDir, 'index.rst'), indexPage, lintMode);
 }
 
-Future<void> processClientPage(String basePath, String outDir) async {
+Future<void> processClientPage(
+    String basePath, String outDir, bool lintMode) async {
   final doc =
       await parseHtmlFile(p.join(basePath, "edgedb/edgedb-library.html"));
 
@@ -156,7 +195,7 @@ Client
 
 ${nodeToRst(doc.querySelector("#dartdoc-main-content section.desc")!)}''';
 
-  await File(p.join(outDir, "client.rst")).writeAsString(page);
+  await writeOrValidateFile(p.join(outDir, "client.rst"), page, lintMode);
 }
 
 const classFields = ['constructor', 'property', 'method', 'operator'];
@@ -288,7 +327,8 @@ ${nodeToRst(doc.querySelector("#dartdoc-main-content section.desc")!)}''';
   return page;
 }
 
-Future<void> processAPIPage(String outDir, List<RefData> items) async {
+Future<void> processAPIPage(
+    String outDir, List<RefData> items, bool lintMode) async {
   var page = '''
 
 API
@@ -300,10 +340,11 @@ API
 
   page += await renderRefItems(items);
 
-  await File(p.join(outDir, "api.rst")).writeAsString(page);
+  await writeOrValidateFile(p.join(outDir, "api.rst"), page, lintMode);
 }
 
-Future<void> processDatatypesPage(String outDir, List<RefData> items) async {
+Future<void> processDatatypesPage(
+    String outDir, List<RefData> items, bool lintMode) async {
   var page = '''
 
 Datatypes
@@ -315,10 +356,11 @@ Datatypes
 
   page += await renderRefItems(items);
 
-  await File(p.join(outDir, "datatypes.rst")).writeAsString(page);
+  await writeOrValidateFile(p.join(outDir, "datatypes.rst"), page, lintMode);
 }
 
-Future<void> processCodegenPage(String basePath, String outDir) async {
+Future<void> processCodegenPage(
+    String basePath, String outDir, bool lintMode) async {
   final doc = await parseHtmlFile(
       p.join(basePath, "edgeql_codegen/edgeql_codegen-library.html"));
 
@@ -331,7 +373,7 @@ Codegen
 
 ${nodeToRst(doc.querySelector("#dartdoc-main-content section.desc")!)}''';
 
-  await File(p.join(outDir, "codegen.rst")).writeAsString(page);
+  await writeOrValidateFile(p.join(outDir, "codegen.rst"), page, lintMode);
 }
 
 const headingUnderlines = {'h1': '=', 'h2': '-', 'h3': '.'};
@@ -369,6 +411,9 @@ String nodeToRst(html.Node node, {bool skipEmptyText = false}) {
           if (RegExp(r'^(www\.)?edgedb\.com').hasMatch(parsedUrl.host)) {
             href = parsedUrl.path +
                 (parsedUrl.hasFragment ? '#${parsedUrl.fragment}' : '');
+            if (hrefToRefMapping.containsKey(href)) {
+              return ':ref:`$label <${hrefToRefMapping[href]}>`';
+            }
           }
         } else {
           // href is relative

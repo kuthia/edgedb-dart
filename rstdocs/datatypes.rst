@@ -150,7 +150,7 @@ The upper boundary of the range, if it exists.
 
 Compares this object to another object.
 
-Returns a value like a `Comparator <https://api.dart.dev/stable/3.0.6/dart-core/Comparator.html>`__ when comparing ``this`` to ``other``.
+Returns a value like a `Comparator <https://api.dart.dev/stable/3.4.4/dart-core/Comparator.html>`__ when comparing ``this`` to ``other``.
 That is, it returns a negative integer if ``this`` is ordered before ``other``,
 a positive integer if ``this`` is ordered after ``other``,
 and zero if ``this`` and ``other`` are ordered together.
@@ -386,6 +386,250 @@ upper bounds are checked. An empty range is considered lower than a
 non-empty range, and unspecified lower/upper bounds are considered
 lower/greater than specified lower/upper bounds respectively.
 
+.. _edgedb-dart-MultiRange:
+
+*class* MultiRange
+------------------
+
+.. _edgedb-dart-MultiRange-MultiRange:
+
+*constructor* ``MultiRange<T>()``
+.................................
+
+
+.. code-block:: dart
+
+    MultiRange<T>(
+      Iterable<Range<T>> ranges
+    )
+
+
+.. _edgedb-dart-MultiRange-hashCode:
+
+*property* ``.hashCode``
+........................
+
+
+.. code-block:: dart
+
+    int get hashCode
+
+The hash code for this object.
+
+.. _edgedb-dart-MultiRange-iterator:
+
+*property* ``.iterator``
+........................
+
+
+.. code-block:: dart
+
+    Iterator<Range<T>> get iterator
+
+An iterator that iterates over the elements of this set.
+
+The order of iteration is defined by the individual ``Set`` implementation,
+but must be consistent between changes to the set.
+
+.. _edgedb-dart-MultiRange-length:
+
+*property* ``.length``
+......................
+
+
+.. code-block:: dart
+
+    int get length
+
+The number of elements in :ref:`this <edgedb-dart-MultiRange>`.
+
+Counting all elements may involve iterating through all elements and can
+therefore be slow.
+Some iterables have a more efficient way to find the number of elements.
+These *must* override the default implementation of ``length``.
+
+.. _edgedb-dart-MultiRange-add:
+
+*method* ``.add()``
+...................
+
+
+.. code-block:: dart
+
+    bool add(
+      Range<T> value
+    )
+
+Adds ``value`` to the set.
+
+Returns ``true`` if ``value`` (or an equal value) was not yet in the set.
+Otherwise returns ``false`` and the set is not changed.
+
+Example:
+
+.. code-block:: dart
+
+    final dateTimes = <DateTime>{};
+    final time1 = DateTime.fromMillisecondsSinceEpoch(0);
+    final time2 = DateTime.fromMillisecondsSinceEpoch(0);
+    // time1 and time2 are equal, but not identical.
+    assert(time1 == time2);
+    assert(!identical(time1, time2));
+    final time1Added = dateTimes.add(time1);
+    print(time1Added); // true
+    // A value equal to time2 exists already in the set, and the call to
+    // add doesn't change the set.
+    final time2Added = dateTimes.add(time2);
+    print(time2Added); // false
+    
+    print(dateTimes); // {1970-01-01 02:00:00.000}
+    assert(dateTimes.length == 1);
+    assert(identical(time1, dateTimes.first));
+    print(dateTimes.length);
+    
+.. _edgedb-dart-MultiRange-contains:
+
+*method* ``.contains()``
+........................
+
+
+.. code-block:: dart
+
+    bool contains(
+      Object? element
+    )
+
+Whether ``value`` is in the set.
+
+.. code-block:: dart
+
+    final characters = <String>{'A', 'B', 'C'};
+    final containsB = characters.contains('B'); // true
+    final containsD = characters.contains('D'); // false
+    
+.. _edgedb-dart-MultiRange-lookup:
+
+*method* ``.lookup()``
+......................
+
+
+.. code-block:: dart
+
+    Range<T>? lookup(
+      Object? element
+    )
+
+If an object equal to ``object`` is in the set, return it.
+
+Checks whether ``object`` is in the set, like :ref:`contains <edgedb-dart-MultiRange-contains>`, and if so,
+returns the object in the set, otherwise returns ``null``.
+
+If the equality relation used by the set is not identity,
+then the returned object may not be *identical* to ``object``.
+Some set implementations may not be able to implement this method.
+If the :ref:`contains <edgedb-dart-MultiRange-contains>` method is computed,
+rather than being based on an actual object instance,
+then there may not be a specific object instance representing the
+set element.
+
+.. code-block:: dart
+
+    final characters = <String>{'A', 'B', 'C'};
+    final containsB = characters.lookup('B');
+    print(containsB); // B
+    final containsD = characters.lookup('D');
+    print(containsD); // null
+    
+.. _edgedb-dart-MultiRange-remove:
+
+*method* ``.remove()``
+......................
+
+
+.. code-block:: dart
+
+    bool remove(
+      Object? value
+    )
+
+Removes ``value`` from the set.
+
+Returns ``true`` if ``value`` was in the set, and ``false`` if not.
+The method has no effect if ``value`` was not in the set.
+
+.. code-block:: dart
+
+    final characters = <String>{'A', 'B', 'C'};
+    final didRemoveB = characters.remove('B'); // true
+    final didRemoveD = characters.remove('D'); // false
+    print(characters); // {A, C}
+    
+.. _edgedb-dart-MultiRange-toJSON:
+
+*method* ``.toJSON()``
+......................
+
+
+.. code-block:: dart
+
+    dynamic toJSON()
+
+
+.. _edgedb-dart-MultiRange-toSet:
+
+*method* ``.toSet()``
+.....................
+
+
+.. code-block:: dart
+
+    Set<Range<T>> toSet()
+
+Creates a `Set <https://api.dart.dev/stable/3.4.4/dart-core/Set-class.html>`__ with the same elements and behavior as this ``Set``.
+
+The returned set behaves the same as this set
+with regard to adding and removing elements.
+It initially contains the same elements.
+If this set specifies an ordering of the elements,
+the returned set will have the same order.
+
+.. _edgedb-dart-MultiRange-toString:
+
+*method* ``.toString()``
+........................
+
+
+.. code-block:: dart
+
+    String toString()
+
+A string representation of this object.
+
+Some classes have a default textual representation,
+often paired with a static ``parse`` function (like `int.parse <https://api.dart.dev/stable/3.4.4/dart-core/int/parse.html>`__).
+These classes will provide the textual representation as
+their string representation.
+
+Other classes have no meaningful textual representation
+that a program will care about.
+Such classes will typically override ``toString`` to provide
+useful information when inspecting the object,
+mainly for debugging or logging.
+
+.. _edgedb-dart-MultiRange-operator_equals:
+
+*operator* ``==``
+.................
+
+
+.. code-block:: dart
+
+    bool operator ==(
+      Object other
+    )
+
+Returns whether two multiranges are equal.
+
 .. _edgedb-dart-ConfigMemory:
 
 *class* ConfigMemory
@@ -501,7 +745,7 @@ ambiguous 'kB', which can mean 1000 or 1024 bytes.
 A string representation of this object.
 
 Some classes have a default textual representation,
-often paired with a static ``parse`` function (like `int.parse <https://api.dart.dev/stable/3.0.6/dart-core/int/parse.html>`__).
+often paired with a static ``parse`` function (like `int.parse <https://api.dart.dev/stable/3.4.4/dart-core/int/parse.html>`__).
 These classes will provide the textual representation as
 their string representation.
 

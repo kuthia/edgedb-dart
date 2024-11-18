@@ -26,15 +26,17 @@ import 'codecs.dart';
 class ArrayCodec<T> extends Codec {
   final Codec subCodec;
   final int length;
+  final String? typeName;
 
-  ArrayCodec(super.tid, this.subCodec, this.length);
+  ArrayCodec(super.tid, this.typeName, this.subCodec, this.length);
 
   @override
   void encode(WriteBuffer buf, dynamic object) {
     if (!(subCodec is ScalarCodec ||
         subCodec is TupleCodec ||
         subCodec is NamedTupleCodec ||
-        subCodec is RangeCodec)) {
+        subCodec is RangeCodec ||
+        subCodec is MultiRangeCodec)) {
       throw InvalidArgumentError(
           "only arrays of scalars or tuples are supported");
     }
